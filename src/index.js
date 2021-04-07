@@ -10,19 +10,50 @@ app.use(cors());
 const users = [];
 
 function checksExistsUserAccount(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers;
+  const user = users.find(user => user.username === username);
+  if(!user) {
+    return response.status(404).json({ error: "User not found." });
+  }
+  request.user = user;
+  return next();
 }
 
 function checksCreateTodosUserAvailability(request, response, next) {
-  // Complete aqui
+  const { user } = request;
+  if(user.pro || (!user.pro && user.todos.length < 10)) {
+    return next();
+  }
+  return response.status(403);
 }
 
 function checksTodoExists(request, response, next) {
-  // Complete aqui
+  const { id } = request.params;
+  const { username } = request.headers;
+  const user = users.find(user => user.username === username);
+  if(!validate(id)) {
+    return response.status(400);
+  }
+  if (user) {
+    const todo = user.todos.find((todo) => todo.id === id);
+    if(todo) {
+      request.user = user;
+      request.todo = todo;
+      next();
+    }
+    return response.status(404);
+  }
+  return response.status(404);
 }
 
 function findUserById(request, response, next) {
-  // Complete aqui
+  const { id } = request.params;
+  const user = users.find(user => user.id === id);
+  if(user) {
+    request.user = user;
+    next();
+  }
+  return response.status(404);
 }
 
 app.post('/users', (request, response) => {
@@ -95,7 +126,7 @@ app.put('/todos/:id', checksTodoExists, (request, response) => {
   todo.title = title;
   todo.deadline = new Date(deadline);
 
-  return response.json(todo);
+  return response.status(200).json(todo);
 });
 
 app.patch('/todos/:id/done', checksTodoExists, (request, response) => {
